@@ -134,6 +134,18 @@ public class Page {
         buffer.putShort(pos + 2, length);
     }
 
+    // Get "deleted" slot
+    private int findDeletedSlot() {
+        int slotCount = getSlotCount();
+        for (int i = 0; i < slotCount; i++) {
+            Slot slot = getSlot(i);
+            if (slot.getOffset() < 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public boolean hasSpaceFor(int recordSize) {
         return getFreeSpaceSize() >= recordSize + SLOT_SIZE;
     }
@@ -166,7 +178,6 @@ public class Page {
     /**
      * Insert a raw record into the page.
      */
-
     public int insertRecord(byte[] recordBytes) {
         int recordSize = recordBytes.length;
 
@@ -175,7 +186,12 @@ public class Page {
         }
 
         // get slot index
-        short slotIndex = getSlotCount();
+        int slotIndex = findDeletedSlot();
+        // if no "deleted" slot found, create new slot
+        if (slotIndex == -1) {
+            slotIndex = getSlotCount();
+            setSlotCount((short) (slotIndex + 1));
+        }
         // record grows from top
         short recordOffset = getFreeSpaceOffset();
 
@@ -186,7 +202,7 @@ public class Page {
         setSlot(slotIndex, recordOffset, (short) recordSize);
 
         // Update header
-        setSlotCount((short) (slotIndex + 1));
+
         setFreeSpaceOffset((short) (recordOffset + recordSize)); //free space index for the next record bytes to start
 
         return slotIndex;
