@@ -1,5 +1,7 @@
 package sql.storage;
 
+import sql.page.Page;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -20,6 +22,12 @@ public class DiskManager {
         long offset = (long) pageId * pageSize;
         file.seek(offset);
         file.write(data);
+    }
+
+    public Page getPage(int pageId) throws IOException {
+        byte[] pageBytes = new byte[Page.PAGE_SIZE];
+        readPage(pageId, pageBytes);
+        return new Page(pageBytes);
     }
 
     public void readPage(int pageId, byte[] data) throws IOException {

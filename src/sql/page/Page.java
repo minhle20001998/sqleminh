@@ -198,12 +198,10 @@ public class Page {
         // Write record bytes
         buffer.position(recordOffset).put(recordBytes);
 
-        // Write slot entry (grows from bottom)
+        // Write slot data (grows from bottom)
         setSlot(slotIndex, recordOffset, (short) recordSize);
-
-        // Update header
-
-        setFreeSpaceOffset((short) (recordOffset + recordSize)); //free space index for the next record bytes to start
+        // Update free space index for the next record bytes to start
+        setFreeSpaceOffset((short) (recordOffset + recordSize));
 
         return slotIndex;
     }
