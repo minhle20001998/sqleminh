@@ -147,7 +147,7 @@ public class Page {
     }
 
     public boolean hasSpaceFor(int recordSize) {
-        return getFreeSpaceSize() >= recordSize + SLOT_SIZE;
+        return getFreeSpaceLeft() >= recordSize + SLOT_SIZE;
     }
 
     /**

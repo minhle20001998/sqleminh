@@ -4,6 +4,7 @@ import sql.page.Page;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 
 public class DiskManager {
     private final RandomAccessFile file;
@@ -20,6 +21,12 @@ public class DiskManager {
         }
 
         long offset = (long) pageId * pageSize;
+        long requiredSize = offset + pageSize;
+
+        if (file.length() < requiredSize) {
+            file.setLength(requiredSize);
+        }
+
         file.seek(offset);
         file.write(data);
     }
@@ -36,6 +43,13 @@ public class DiskManager {
         }
 
         long offset = (long) pageId * pageSize;
+
+        // Page does not exist yet → return empty page
+        if (offset >= file.length()) {
+            Arrays.fill(data, (byte) 0);
+            return;
+        }
+
         file.seek(offset);
         // pipe file content starts from the above offset into data variable
         file.readFully(data);

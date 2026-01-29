@@ -42,7 +42,7 @@ public class BufferPool {
         // Read page from disk
         Page page = diskManager.getPage(pageId);
         Frame frame = new Frame(page);
-
+        frame.pin();
         pageTable.put(pageId, frame);
         fifoQueue.add(pageId);
 
@@ -75,7 +75,7 @@ public class BufferPool {
 
         if (frame.isDirty()) {
             Page page = frame.getPage();
-            diskManager.writePage(page.getPageId(), page.getData());
+            diskManager.writePage(pageId, page.getData());
             frame.clearDirty();
         }
     }
@@ -95,7 +95,6 @@ public class BufferPool {
         while (attempts-- > 0) {
             int pageId = fifoQueue.poll();
             Frame victim = pageTable.get(pageId);
-
             if (victim.isPinned()) {
                 fifoQueue.add(pageId);
                 continue;
@@ -103,7 +102,7 @@ public class BufferPool {
 
             if (victim.isDirty()) {
                 Page page = victim.getPage();
-                diskManager.writePage(page.getPageId(), page.getData());
+                diskManager.writePage(pageId, page.getData());
             }
 
             pageTable.remove(pageId);
@@ -112,5 +111,9 @@ public class BufferPool {
 
         // If we reach here, all pages are pinned
         throw new IllegalStateException("All pages are pinned - No unpinned pages available for eviction");
+    }
+
+    public Map<Integer, Frame> getPageTable() {
+        return pageTable;
     }
 }
