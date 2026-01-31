@@ -42,6 +42,11 @@ public class Page {
         this.buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
     }
 
+    // - Init by method
+    public void initEmpty(int pageId, PageType type) {
+        initHeader(pageId, type);
+    }
+
 
     // Header Initialization
     private void initHeader(int pageId, PageType type) {
