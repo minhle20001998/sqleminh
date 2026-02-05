@@ -210,6 +210,23 @@ public class Page {
         return slotIndex;
     }
 
+    public void writeRecord(int slotIndex, byte[] recordBytes) {
+        Slot slot = getSlot(slotIndex);
+
+        if (slot.isDeleted()) {
+            throw new IllegalStateException("Cannot write to deleted slot");
+        }
+
+        if (recordBytes.length > slot.getLength()) {
+            throw new IllegalArgumentException("Record too large for slot");
+        }
+
+        buffer.position(slot.getOffset()).put(recordBytes);
+
+        // In case recordBytes length is shorter than the original
+        setSlot(slotIndex, slot.getOffset(), (short) recordBytes.length);
+    }
+
     /**
      * Marks slot as invalid.
      */

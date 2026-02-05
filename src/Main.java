@@ -19,9 +19,10 @@ public class Main {
 //        testPage();
 //        testBuffer();
 //        testTableHeap();
-        testSequentialScan();
+//        testSequentialScan();
+//        testDeleteAndScan();
+        testUpdate();
     }
-
 
     private static void testPage() throws IOException {
         // Create a new page
@@ -230,6 +231,81 @@ public class Main {
         }
 
         System.out.println("SequentialScan PASSED");
+    }
+
+    private static void testDeleteAndScan() throws Exception {
+        System.out.println("\n=== Delete + SequentialScan Test ===");
+
+        Path dbFile = Path.of("delete_scan_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(2, diskManager);
+        TableHeap table = new TableHeap(bufferPool, 0);
+
+        RecordId r1 = table.insert("A".getBytes());
+        RecordId r2 = table.insert("B".getBytes());
+        RecordId r3 = table.insert("C".getBytes());
+
+        System.out.println("Inserted A, B, C");
+
+        // Delete B
+        table.delete(r2);
+        System.out.println("Deleted B");
+
+        SequentialScan scan =
+                new SequentialScan(bufferPool, 0, table.getLastPageId());
+
+        int count = 0;
+        byte[] record;
+
+        while ((record = scan.next()) != null) {
+            System.out.println("Scan -> " + new String(record));
+            count++;
+        }
+
+        scan.close();
+
+        // Expect only A and C
+        if (count != 2) {
+            throw new IllegalStateException(
+                    "Expected 2 records after delete, got " + count
+            );
+        }
+
+        System.out.println("Delete + SequentialScan PASSED");
+    }
+
+    private static void testUpdate() throws Exception {
+        System.out.println("\n=== UPDATE Test ===");
+
+        Path dbFile = Path.of("update_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(2, diskManager);
+        TableHeap table = new TableHeap(bufferPool, 0);
+
+        // Insert
+        RecordId r1 = table.insert("Hello".getBytes());
+
+        // Case 1: overwrite in place
+        RecordId r1b = table.update(r1, "Hi".getBytes());
+        byte[] a = table.read(r1b);
+        System.out.println("Update in place a -> " + new String(a));
+        Page p1 = bufferPool.fetchPage(r1b.getPageId());
+        bufferPool.unpinPage(r1b.getPageId(), false);
+        System.out.println("Data 1: " + Arrays.toString(p1.getData()));
+
+        // Case 2: force move
+        RecordId r2 = table.update(r1b, "Hello World!!!".getBytes());
+        byte[] b = table.read(r2);
+        System.out.println("Update in place b -> " + new String(b));
+        Page p2 = bufferPool.fetchPage(r2.getPageId());
+        bufferPool.unpinPage(r2.getPageId(), false);
+        System.out.println("Data 1: " + Arrays.toString(p1.getData()));
+
+        System.out.println("UPDATE PASSED");
     }
 
     private static void printRecord(Page page, int slot) {
