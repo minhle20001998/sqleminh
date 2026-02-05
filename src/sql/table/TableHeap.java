@@ -10,8 +10,17 @@ import java.io.IOException;
 public class TableHeap {
 
     private final BufferPool bufferPool;
+
     private int firstPageId;
     private int lastPageId;
+
+    public int getFirstPageId() {
+        return firstPageId;
+    }
+
+    public int getLastPageId() {
+        return lastPageId;
+    }
 
     public TableHeap(BufferPool bufferPool, int firstPageId) throws IOException {
         this.bufferPool = bufferPool;
@@ -23,6 +32,7 @@ public class TableHeap {
     }
 
     public RecordId insert(byte[] recordBytes) throws IOException {
+
         int pageId = firstPageId;
 
         while (true) {
@@ -30,12 +40,13 @@ public class TableHeap {
 
             if (page.hasSpaceFor(recordBytes.length)) {
                 short slotId = (short) page.insertRecord(recordBytes);
-                bufferPool.unpinPage(firstPageId, false);
+                bufferPool.unpinPage(pageId, true);
                 return new RecordId(pageId, slotId);
             }
 
-            bufferPool.unpinPage(firstPageId, false);
+            bufferPool.unpinPage(pageId, false);
 
+            // Move to next page or create one
             if (pageId == lastPageId) {
                 int newPageId = lastPageId + 1;
                 Page newPage = bufferPool.fetchPage(newPageId);
@@ -55,7 +66,7 @@ public class TableHeap {
 
         Page page = bufferPool.fetchPage(pageId);
         byte[] data = page.readRecord(rid.getSlotId());
-        bufferPool.unpinPage(firstPageId, false);
+        bufferPool.unpinPage(pageId, false);
 
         return data;
     }
@@ -65,6 +76,6 @@ public class TableHeap {
 
         Page page = bufferPool.fetchPage(pageId);
         page.deleteRecord(rid.getSlotId());
-        bufferPool.unpinPage(firstPageId, true);
+        bufferPool.unpinPage(pageId, true);
     }
 }

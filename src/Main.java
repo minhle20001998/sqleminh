@@ -3,7 +3,10 @@ import sql.buffer.Frame;
 import sql.page.Page;
 import sql.page.PageType;
 import sql.page.Slot;
+import sql.record.RecordId;
 import sql.storage.DiskManager;
+import sql.table.SequentialScan;
+import sql.table.TableHeap;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -12,10 +15,11 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 public class Main {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
 //        testPage();
-        testBuffer();
-
+//        testBuffer();
+//        testTableHeap();
+        testSequentialScan();
     }
 
 
@@ -144,6 +148,88 @@ public class Main {
         }
 
         System.out.println("-------------------------\n");
+    }
+
+    private static void testTableHeap() throws IOException {
+        Path dbFile = Path.of("tableheap_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(2, diskManager);
+
+        System.out.println("=== Create TableHeap ===");
+        TableHeap table = new TableHeap(bufferPool, 0);
+
+        System.out.println("=== Insert records ===");
+        RecordId r1 = table.insert("Hello".getBytes());
+        RecordId r2 = table.insert("World".getBytes());
+        RecordId r3 = table.insert("Database".getBytes());
+
+        System.out.println("\n=== Read records ===");
+
+        System.out.println("\n=== Verify page state ===");
+        Page page = bufferPool.fetchPage(r1.getPageId());
+
+        System.out.println("PageId: " + page.getPageId());
+        System.out.println("SlotCount: " + page.getSlotCount());
+
+        // Expect 3
+        assert page.getSlotCount() == 3 : "Slot count should be 3";
+
+        bufferPool.unpinPage(page.getPageId(), false);
+
+        System.out.println("\n=== Flush & Reload ===");
+        bufferPool.flushAll();
+
+        // Reopen DB
+        diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        bufferPool = new BufferPool(2, diskManager);
+        table = new TableHeap(bufferPool, 0);
+
+        System.out.println(new String(table.read(r1)));
+        System.out.println(new String(table.read(r2)));
+        System.out.println(new String(table.read(r3)));
+
+        System.out.println("\nTableHeap basic test PASSED");
+    }
+
+    private static void testSequentialScan() throws Exception {
+        System.out.println("\n=== SequentialScan Test ===");
+
+        Path dbFile = Path.of("scan_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(2, diskManager);
+        TableHeap table = new TableHeap(bufferPool, 0);
+
+        // Insert records
+        table.insert("A".getBytes());
+        table.insert("B".getBytes());
+        table.insert("C".getBytes());
+        table.insert("D".getBytes());
+
+        System.out.println("Inserted 4 records");
+
+        // Scan
+        SequentialScan scan = new SequentialScan(bufferPool, 0, table.getLastPageId());
+
+        int count = 0;
+        byte[] record;
+
+        while ((record = scan.next()) != null) {
+            System.out.println("Scan -> " + new String(record));
+            count++;
+        }
+
+        scan.close();
+
+        // Verify
+        if (count != 4) {
+            throw new IllegalStateException("Expected 4 records, got " + count);
+        }
+
+        System.out.println("SequentialScan PASSED");
     }
 
     private static void printRecord(Page page, int slot) {

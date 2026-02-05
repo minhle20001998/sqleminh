@@ -32,6 +32,10 @@ public class DiskManager {
     }
 
     public Page getPage(int pageId) throws IOException {
+        if (!pageExists(pageId)) {
+            throw new IllegalStateException("Page " + pageId + " does not exist on disk");
+        }
+
         byte[] pageBytes = new byte[Page.PAGE_SIZE];
         readPage(pageId, pageBytes);
         return new Page(pageBytes);
@@ -57,5 +61,10 @@ public class DiskManager {
 
     public void close() throws IOException {
         file.close();
+    }
+
+    public boolean pageExists(int pageId) throws IOException {
+        long offset = (long) pageId * pageSize;
+        return file.length() >= offset + pageSize;
     }
 }

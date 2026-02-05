@@ -53,7 +53,6 @@ public class Page {
         setPageId(pageId);
         setPageType(type);
         setSlotCount((short) 0);
-
         // Records start right after the header
         setFreeSpaceOffset((short) HEADER_SIZE);
 

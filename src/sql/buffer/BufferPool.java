@@ -1,13 +1,11 @@
 package sql.buffer;
 
 import sql.page.Page;
+import sql.page.PageType;
 import sql.storage.DiskManager;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 public class BufferPool {
     private final int maxFrames;
@@ -34,15 +32,22 @@ public class BufferPool {
             return frame.getPage();
         }
 
-        // Page Table hit the limit -> remove the last in queue;
         if (pageTable.size() >= maxFrames) {
             evictPage();
         }
 
-        // Read page from disk
-        Page page = diskManager.getPage(pageId);
+        Page page;
+
+        if (diskManager.pageExists(pageId)) {
+            page = diskManager.getPage(pageId);
+        } else {
+            page = new Page(pageId, PageType.DATA);
+            diskManager.writePage(pageId, page.getData());
+        }
+
         Frame frame = new Frame(page);
         frame.pin();
+
         pageTable.put(pageId, frame);
         fifoQueue.add(pageId);
 
