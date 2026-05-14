@@ -1,5 +1,7 @@
 import sql.buffer.BufferPool;
 import sql.buffer.Frame;
+import sql.catalog.Catalog;
+import sql.catalog.TableMetadata;
 import sql.page.Page;
 import sql.page.PageType;
 import sql.page.Slot;
@@ -21,7 +23,8 @@ public class Main {
 //        testTableHeap();
 //        testSequentialScan();
 //        testDeleteAndScan();
-        testUpdate();
+//        testUpdate();
+        testCatalog();
     }
 
     private static void testPage() throws IOException {
@@ -306,6 +309,72 @@ public class Main {
         System.out.println("Data 1: " + Arrays.toString(p1.getData()));
 
         System.out.println("UPDATE PASSED");
+    }
+
+    private static void testCatalog() throws Exception {
+        System.out.println("\n=== Catalog Test ===");
+
+        Path dbFile = Path.of("catalog_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(3, diskManager);
+        Catalog catalog = new Catalog(bufferPool);
+
+        TableMetadata usersMetadata = catalog.createTable("users");
+        TableMetadata postsMetadata = catalog.createTable("posts");
+
+        System.out.println("Created table: " + usersMetadata);
+        System.out.println("Created table: " + postsMetadata);
+
+        TableHeap users = catalog.getTableHeap("users");
+        TableHeap posts = catalog.getTableHeap("posts");
+
+        RecordId userRid = users.insert("user:1:minh".getBytes());
+        RecordId postRid = posts.insert("post:1:hello".getBytes());
+
+        System.out.println("User row -> " + new String(users.read(userRid)));
+        System.out.println("Post row -> " + new String(posts.read(postRid)));
+
+        System.out.println("\nCatalog tables:");
+        for (TableMetadata metadata : catalog.listTables()) {
+            System.out.println(metadata);
+        }
+
+        catalog.flush();
+        bufferPool.flushAll();
+        diskManager.close();
+
+        System.out.println("\n=== Reload Catalog Test ===");
+
+        diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        bufferPool = new BufferPool(3, diskManager);
+        catalog = new Catalog(bufferPool);
+
+        System.out.println("Loaded users metadata: " + catalog.getTableMetadata("users"));
+        System.out.println("Loaded posts metadata: " + catalog.getTableMetadata("posts"));
+
+        users = catalog.getTableHeap("users");
+        posts = catalog.getTableHeap("posts");
+
+        System.out.println("Reloaded user row -> " + new String(users.read(userRid)));
+        System.out.println("Reloaded post row -> " + new String(posts.read(postRid)));
+
+        TableHeap limitedTable = new TableHeap(bufferPool, 3001, 3001, 3001);
+        byte[] largeRecord = new byte[Page.PAGE_SIZE - Page.HEADER_SIZE - Page.SLOT_SIZE];
+        Arrays.fill(largeRecord, (byte) 'x');
+        limitedTable.insert(largeRecord);
+
+        try {
+            limitedTable.insert("overflow".getBytes());
+            throw new IllegalStateException("Expected table page range overflow");
+        } catch (IllegalStateException expected) {
+            System.out.println("Range limit check -> " + expected.getMessage());
+        }
+
+        diskManager.close();
+
+        System.out.println("Catalog persistence test PASSED");
     }
 
     private static void printRecord(Page page, int slot) {

@@ -14,6 +14,7 @@ public class TableHeap {
 
     private int firstPageId;
     private int lastPageId;
+    private int maxPageId;
 
     public int getFirstPageId() {
         return firstPageId;
@@ -23,10 +24,31 @@ public class TableHeap {
         return lastPageId;
     }
 
+    public int getMaxPageId() {
+        return maxPageId;
+    }
+
     public TableHeap(BufferPool bufferPool, int firstPageId) throws IOException {
+        this(bufferPool, firstPageId, firstPageId);
+    }
+
+    public TableHeap(BufferPool bufferPool, int firstPageId, int lastPageId) throws IOException {
+        this(bufferPool, firstPageId, lastPageId, Integer.MAX_VALUE);
+    }
+
+    public TableHeap(BufferPool bufferPool, int firstPageId, int lastPageId, int maxPageId) throws IOException {
+        if (lastPageId < firstPageId) {
+            throw new IllegalArgumentException("Last page id cannot be smaller than first page id");
+        }
+
+        if (maxPageId < lastPageId) {
+            throw new IllegalArgumentException("Max page id cannot be smaller than last page id");
+        }
+
         this.bufferPool = bufferPool;
         this.firstPageId = firstPageId;
-        this.lastPageId = firstPageId;
+        this.lastPageId = lastPageId;
+        this.maxPageId = maxPageId;
 
         Page page = bufferPool.fetchPage(firstPageId);
         bufferPool.unpinPage(firstPageId, false);
@@ -50,6 +72,15 @@ public class TableHeap {
             // Move to next page or create one
             if (pageId == lastPageId) {
                 int newPageId = lastPageId + 1;
+
+                if (newPageId > maxPageId) {
+                    throw new IllegalStateException(
+                            "Table page range is full. firstPageId=" + firstPageId +
+                                    ", lastPageId=" + lastPageId +
+                                    ", maxPageId=" + maxPageId
+                    );
+                }
+
                 Page newPage = bufferPool.fetchPage(newPageId);
                 newPage.initEmpty(newPageId, PageType.DATA);
 
