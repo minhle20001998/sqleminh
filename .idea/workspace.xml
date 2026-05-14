@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="3bc80454-6623-48a8-8c01-ff67d1e2f3e3" name="Changes" comment="feature: implement table update delete">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="3bc80454-6623-48a8-8c01-ff67d1e2f3e3" name="Changes" comment="feature: implement catalog">
       <change beforePath="$PROJECT_DIR$/output/production/sqleminh/.idea/.gitignore" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/output/production/sqleminh/.idea/misc.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/output/production/sqleminh/.idea/modules.xml" beforeDir="false" />
@@ -12,8 +11,6 @@
       <change beforePath="$PROJECT_DIR$/output/production/sqleminh/sql/page/PageType.class" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/output/production/sqleminh/sql/page/Slot.class" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/output/production/sqleminh/sql/storage/DiskManager.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/sql/table/TableHeap.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/sql/table/TableHeap.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -106,7 +103,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770300489237</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="feature: implement catalog">
+      <option name="closed" value="true" />
+      <created>1778775007949</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1778775007949</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -123,7 +128,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="feature: implement sequential scan" />
     <MESSAGE value="feature: implement table update delete" />
-    <option name="LAST_COMMIT_MESSAGE" value="feature: implement table update delete" />
+    <MESSAGE value="feature: implement catalog" />
+    <option name="LAST_COMMIT_MESSAGE" value="feature: implement catalog" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
