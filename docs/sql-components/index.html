@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Basic SQL Engine Components</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1f2933;
+      --muted: #697586;
+      --line: #d9dee7;
+      --accent: #0f766e;
+      --accent-soft: #e0f2f1;
+      --code-bg: #111827;
+      --code-text: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      padding: 20px 14px;
+    }
+
+    .brand {
+      padding: 0 8px 16px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      line-height: 1.25;
+      margin: 0 0 6px;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    nav {
+      display: grid;
+      gap: 2px;
+    }
+
+    nav button {
+      width: 100%;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      display: block;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.35;
+      padding: 9px 10px;
+      text-align: left;
+    }
+
+    nav button:hover {
+      background: #eef2f6;
+    }
+
+    nav button.active {
+      background: var(--accent-soft);
+      color: #0b4f4a;
+      font-weight: 650;
+    }
+
+    main {
+      min-width: 0;
+      padding: 34px 24px 64px;
+    }
+
+    .content {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 0 auto;
+      max-width: 920px;
+      padding: 36px 44px;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    article h1,
+    article h2,
+    article h3 {
+      line-height: 1.25;
+      margin: 28px 0 12px;
+    }
+
+    article h1 {
+      border-bottom: 1px solid var(--line);
+      font-size: 32px;
+      margin-top: 0;
+      padding-bottom: 14px;
+    }
+
+    article h2 {
+      font-size: 21px;
+    }
+
+    article h3 {
+      font-size: 17px;
+    }
+
+    article p {
+      margin: 0 0 14px;
+    }
+
+    article ul,
+    article ol {
+      padding-left: 24px;
+    }
+
+    article li {
+      margin: 5px 0;
+    }
+
+    article a {
+      color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    article code {
+      background: #edf1f5;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+      padding: 2px 5px;
+    }
+
+    article pre {
+      background: var(--code-bg);
+      border-radius: 8px;
+      color: var(--code-text);
+      overflow: auto;
+      padding: 15px 16px;
+    }
+
+    article pre code {
+      background: transparent;
+      color: inherit;
+      display: block;
+      font-size: 13px;
+      padding: 0;
+      white-space: pre;
+    }
+
+    article blockquote {
+      border-left: 4px solid var(--line);
+      color: var(--muted);
+      margin: 18px 0;
+      padding: 2px 0 2px 16px;
+    }
+
+    @media (max-width: 820px) {
+      .layout {
+        display: block;
+      }
+
+      aside {
+        height: auto;
+        max-height: 45vh;
+        position: relative;
+      }
+
+      main {
+        padding: 16px 12px 40px;
+      }
+
+      .content {
+        padding: 24px 18px;
+      }
+
+      article h1 {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="brand">
+        <h1>Basic SQL Engine Components</h1>
+        <p>Storage pieces already built, plus the SQL layers to add next.</p>
+      </div>
+      <nav id="nav" aria-label="Documentation pages"></nav>
+    </aside>
+
+    <main>
+      <div class="content">
+        <article id="content">
+          <p class="status">Loading documentation...</p>
+        </article>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const docs = [
+      ["README.md", "Overview"],
+      ["01-page.md", "01. Page"],
+      ["02-slot.md", "02. Slot"],
+      ["03-page-type.md", "03. Page Type"],
+      ["04-disk-manager.md", "04. Disk Manager"],
+      ["05-frame.md", "05. Frame"],
+      ["06-buffer-pool.md", "06. Buffer Pool"],
+      ["07-record-id.md", "07. Record ID"],
+      ["08-table-heap.md", "08. Table Heap"],
+      ["09-sequential-scan.md", "09. Sequential Scan"],
+      ["10-catalog-metadata.md", "10. Catalog and Metadata"],
+      ["11-schema.md", "11. Schema"],
+      ["12-tuple-row-format.md", "12. Tuple and Row Format"],
+      ["13-sql-parser.md", "13. SQL Parser"],
+      ["14-binder-validator.md", "14. Binder and Validator"],
+      ["15-logical-plan.md", "15. Logical Plan"],
+      ["16-executor.md", "16. Executor"],
+      ["17-predicate-expression-engine.md", "17. Predicate and Expression"],
+      ["18-index.md", "18. Index"],
+      ["19-transaction-recovery.md", "19. Transaction and Recovery"],
+      ["20-automated-tests.md", "20. Automated Tests"]
+    ];
+
+    const nav = document.getElementById("nav");
+    const content = document.getElementById("content");
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function renderInline(value) {
+      let html = escapeHtml(value);
+      html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+      html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      return html;
+    }
+
+    function renderMarkdown(markdown) {
+      const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+      const html = [];
+      let inCode = false;
+      let code = [];
+      let listType = null;
+
+      function closeList() {
+        if (listType) {
+          html.push(`</${listType}>`);
+          listType = null;
+        }
+      }
+
+      function closeCode() {
+        if (inCode) {
+          html.push(`<pre><code>${escapeHtml(code.join("\n"))}</code></pre>`);
+          code = [];
+          inCode = false;
+        }
+      }
+
+      for (const line of lines) {
+        if (line.startsWith("```")) {
+          if (inCode) {
+            closeCode();
+          } else {
+            closeList();
+            inCode = true;
+            code = [];
+          }
+          continue;
+        }
+
+        if (inCode) {
+          code.push(line);
+          continue;
+        }
+
+        if (!line.trim()) {
+          closeList();
+          continue;
+        }
+
+        const heading = line.match(/^(#{1,3})\s+(.*)$/);
+        if (heading) {
+          closeList();
+          const level = heading[1].length;
+          html.push(`<h${level}>${renderInline(heading[2])}</h${level}>`);
+          continue;
+        }
+
+        const unordered = line.match(/^- (.*)$/);
+        if (unordered) {
+          if (listType !== "ul") {
+            closeList();
+            listType = "ul";
+            html.push("<ul>");
+          }
+          html.push(`<li>${renderInline(unordered[1])}</li>`);
+          continue;
+        }
+
+        const ordered = line.match(/^\d+\. (.*)$/);
+        if (ordered) {
+          if (listType !== "ol") {
+            closeList();
+            listType = "ol";
+            html.push("<ol>");
+          }
+          html.push(`<li>${renderInline(ordered[1])}</li>`);
+          continue;
+        }
+
+        const quote = line.match(/^> ?(.*)$/);
+        if (quote) {
+          closeList();
+          html.push(`<blockquote>${renderInline(quote[1])}</blockquote>`);
+          continue;
+        }
+
+        closeList();
+        html.push(`<p>${renderInline(line)}</p>`);
+      }
+
+      closeCode();
+      closeList();
+      return html.join("\n");
+    }
+
+    function setActive(file) {
+      for (const button of nav.querySelectorAll("button")) {
+        button.classList.toggle("active", button.dataset.file === file);
+      }
+    }
+
+    async function loadDoc(file, updateHash = true) {
+      setActive(file);
+      content.innerHTML = '<p class="status">Loading documentation...</p>';
+
+      try {
+        const response = await fetch(file);
+        if (!response.ok) {
+          throw new Error(`Could not load ${file}`);
+        }
+
+        const markdown = await response.text();
+        content.innerHTML = renderMarkdown(markdown);
+
+        if (updateHash) {
+          history.replaceState(null, "", `#${file}`);
+        }
+
+        window.scrollTo({ top: 0, behavior: "instant" });
+      } catch (error) {
+        content.innerHTML = `
+          <h1>Unable to Load Markdown</h1>
+          <p>The browser could not fetch <code>${escapeHtml(file)}</code>.</p>
+          <p>Host this folder with a static server, then open <code>index.html</code> through that server.</p>
+        `;
+      }
+    }
+
+    for (const [file, title] of docs) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = title;
+      button.dataset.file = file;
+      button.addEventListener("click", () => loadDoc(file));
+      nav.appendChild(button);
+    }
+
+    window.addEventListener("hashchange", () => {
+      const file = decodeURIComponent(location.hash.slice(1));
+      if (docs.some(([docFile]) => docFile === file)) {
+        loadDoc(file, false);
+      }
+    });
+
+    const initialFile = decodeURIComponent(location.hash.slice(1)) || "README.md";
+    const validInitialFile = docs.some(([file]) => file === initialFile) ? initialFile : "README.md";
+    loadDoc(validInitialFile, !location.hash);
+  </script>
+</body>
+</html>
+
