@@ -3,6 +3,7 @@ package sql.catalog;
 import sql.buffer.BufferPool;
 import sql.page.Page;
 import sql.page.PageType;
+import sql.schema.Schema;
 import sql.table.TableHeap;
 
 import java.io.IOException;
@@ -33,6 +34,10 @@ public class Catalog {
     }
 
     public TableMetadata createTable(String tableName) throws IOException {
+        return createTable(tableName, Schema.empty());
+    }
+
+    public TableMetadata createTable(String tableName, Schema schema) throws IOException {
         String normalizedName = normalizeTableName(tableName);
 
         if (tables.containsKey(normalizedName)) {
@@ -43,7 +48,7 @@ public class Catalog {
         int maxPageId = firstPageId + TABLE_PAGE_RANGE_SIZE - 1;
         nextTableStartPageId += TABLE_PAGE_RANGE_SIZE;
 
-        TableMetadata metadata = new TableMetadata(normalizedName, firstPageId, firstPageId, maxPageId);
+        TableMetadata metadata = new TableMetadata(normalizedName, schema, firstPageId, firstPageId, maxPageId);
         TableHeap tableHeap = new TableHeap(bufferPool, firstPageId, firstPageId, maxPageId);
 
         tables.put(normalizedName, metadata);
@@ -125,8 +130,8 @@ public class Catalog {
                 continue;
             }
 
-            String[] parts = lines[i].split("\\|");
-            if (parts.length != 4) {
+            String[] parts = lines[i].split("\\|", -1);
+            if (parts.length != 4 && parts.length != 5) {
                 throw new IllegalStateException("Invalid catalog table entry: " + lines[i]);
             }
 
@@ -134,8 +139,9 @@ public class Catalog {
             int firstPageId = Integer.parseInt(parts[1]);
             int lastPageId = Integer.parseInt(parts[2]);
             int maxPageId = Integer.parseInt(parts[3]);
+            Schema schema = parts.length == 5 ? Schema.deserialize(parts[4]) : Schema.empty();
 
-            TableMetadata metadata = new TableMetadata(tableName, firstPageId, lastPageId, maxPageId);
+            TableMetadata metadata = new TableMetadata(tableName, schema, firstPageId, lastPageId, maxPageId);
             TableHeap tableHeap = new TableHeap(bufferPool, firstPageId, lastPageId, maxPageId);
 
             tables.put(tableName, metadata);
@@ -166,7 +172,8 @@ public class Catalog {
                     .append(metadata.getTableName()).append('|')
                     .append(metadata.getFirstPageId()).append('|')
                     .append(metadata.getLastPageId()).append('|')
-                    .append(metadata.getMaxPageId()).append('\n');
+                    .append(metadata.getMaxPageId()).append('|')
+                    .append(metadata.getSchema().serialize()).append('\n');
         }
 
         return builder.toString();

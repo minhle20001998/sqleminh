@@ -39,6 +39,7 @@ posts: page 1001 through page 2000
 Each table stores:
 
 - Table name
+- Schema
 - First page id
 - Last page id
 - Max page id
@@ -72,6 +73,18 @@ columns:
 firstPageId: 1
 lastPageId: 3
 maxPageId: 1000
+```
+
+The current catalog stores each table entry in page `0` as text:
+
+```text
+tableName|firstPageId|lastPageId|maxPageId|schema
+```
+
+Example schema field:
+
+```text
+id:INT:false,name:TEXT:true
 ```
 
 ## SQL Connection

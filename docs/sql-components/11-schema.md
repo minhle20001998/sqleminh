@@ -23,12 +23,22 @@ SELECT name FROM users WHERE id = 1;
 
 ## Needed Behavior
 
-A schema should support:
+The repo now has a basic schema implementation in `src/sql/schema`.
+
+Implemented classes:
+
+- `SqlType`
+- `Column`
+- `Schema`
+
+The schema supports:
 
 - Defining columns
 - Looking up a column by name
 - Checking data types
-- Knowing how to serialize and deserialize rows
+- Serializing/deserializing schema metadata for the catalog
+
+Tuple serialization is not implemented yet. That is the next component.
 
 ## Example
 
@@ -55,6 +65,19 @@ public class Column {
 }
 ```
 
+## Current Java Example
+
+```java
+Schema usersSchema = new Schema(Arrays.asList(
+    new Column("id", SqlType.INT, false),
+    new Column("name", SqlType.TEXT, true)
+));
+
+catalog.createTable("users", usersSchema);
+```
+
+The catalog persists this schema along with the table page metadata.
+
 ## SQL Connection
 
 For this statement:
@@ -69,4 +92,3 @@ The schema checks that:
 - `name` exists
 - `1` can be stored as `INT`
 - `'Minh'` can be stored as `TEXT`
-

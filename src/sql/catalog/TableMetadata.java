@@ -1,16 +1,23 @@
 package sql.catalog;
 
+import sql.schema.Schema;
+
 public class TableMetadata {
     private final String tableName;
+    private final Schema schema;
     private final int firstPageId;
     private int lastPageId;
     private final int maxPageId;
 
     public TableMetadata(String tableName, int firstPageId, int lastPageId) {
-        this(tableName, firstPageId, lastPageId, lastPageId);
+        this(tableName, Schema.empty(), firstPageId, lastPageId, lastPageId);
     }
 
     public TableMetadata(String tableName, int firstPageId, int lastPageId, int maxPageId) {
+        this(tableName, Schema.empty(), firstPageId, lastPageId, maxPageId);
+    }
+
+    public TableMetadata(String tableName, Schema schema, int firstPageId, int lastPageId, int maxPageId) {
         if (tableName == null || tableName.isBlank()) {
             throw new IllegalArgumentException("Table name cannot be empty");
         }
@@ -24,6 +31,7 @@ public class TableMetadata {
         }
 
         this.tableName = tableName;
+        this.schema = schema == null ? Schema.empty() : schema;
         this.firstPageId = firstPageId;
         this.lastPageId = lastPageId;
         this.maxPageId = maxPageId;
@@ -31,6 +39,10 @@ public class TableMetadata {
 
     public String getTableName() {
         return tableName;
+    }
+
+    public Schema getSchema() {
+        return schema;
     }
 
     public int getFirstPageId() {
@@ -61,6 +73,7 @@ public class TableMetadata {
     public String toString() {
         return "TableMetadata{" +
                 "tableName='" + tableName + '\'' +
+                ", schema=" + schema +
                 ", firstPageId=" + firstPageId +
                 ", lastPageId=" + lastPageId +
                 ", maxPageId=" + maxPageId +

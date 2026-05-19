@@ -6,9 +6,14 @@ import sql.page.Page;
 import sql.page.PageType;
 import sql.page.Slot;
 import sql.record.RecordId;
+import sql.schema.Column;
+import sql.schema.Schema;
+import sql.schema.SqlType;
 import sql.storage.DiskManager;
 import sql.table.SequentialScan;
 import sql.table.TableHeap;
+import sql.tuple.Tuple;
+import sql.tuple.Value;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,7 +29,8 @@ public class Main {
 //        testSequentialScan();
 //        testDeleteAndScan();
 //        testUpdate();
-        testCatalog();
+//        testCatalog();
+        testTuple();
     }
 
     private static void testPage() throws IOException {
@@ -321,8 +327,17 @@ public class Main {
         BufferPool bufferPool = new BufferPool(3, diskManager);
         Catalog catalog = new Catalog(bufferPool);
 
-        TableMetadata usersMetadata = catalog.createTable("users");
-        TableMetadata postsMetadata = catalog.createTable("posts");
+        Schema usersSchema = new Schema(Arrays.asList(
+                new Column("id", SqlType.INT, false),
+                new Column("name", SqlType.TEXT, true)
+        ));
+        Schema postsSchema = new Schema(Arrays.asList(
+                new Column("id", SqlType.INT, false),
+                new Column("title", SqlType.TEXT, false)
+        ));
+
+        TableMetadata usersMetadata = catalog.createTable("users", usersSchema);
+        TableMetadata postsMetadata = catalog.createTable("posts", postsSchema);
 
         System.out.println("Created table: " + usersMetadata);
         System.out.println("Created table: " + postsMetadata);
@@ -353,6 +368,7 @@ public class Main {
 
         System.out.println("Loaded users metadata: " + catalog.getTableMetadata("users"));
         System.out.println("Loaded posts metadata: " + catalog.getTableMetadata("posts"));
+        System.out.println("Loaded users name column: " + catalog.getTableMetadata("users").getSchema().getColumn("name"));
 
         users = catalog.getTableHeap("users");
         posts = catalog.getTableHeap("posts");
@@ -375,6 +391,53 @@ public class Main {
         diskManager.close();
 
         System.out.println("Catalog persistence test PASSED");
+    }
+
+    private static void testTuple() throws Exception {
+        System.out.println("\n=== Tuple Test ===");
+
+        Path dbFile = Path.of("tuple_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(3, diskManager);
+        Catalog catalog = new Catalog(bufferPool);
+
+        Schema usersSchema = new Schema(Arrays.asList(
+                new Column("id", SqlType.INT, false),
+                new Column("name", SqlType.TEXT, true)
+        ));
+
+        catalog.createTable("users", usersSchema);
+        TableHeap users = catalog.getTableHeap("users");
+
+        Tuple tuple = new Tuple(usersSchema, Arrays.asList(
+                Value.intValue(1),
+                Value.textValue("Minh")
+        ));
+
+        RecordId rid = users.insert(tuple.serialize());
+        Tuple loaded = Tuple.deserialize(usersSchema, users.read(rid));
+
+        System.out.println("Loaded id -> " + loaded.getValue("id").asInt());
+        System.out.println("Loaded name -> " + loaded.getValue("name").asText());
+
+        Tuple nullableTuple = new Tuple(usersSchema, Arrays.asList(
+                Value.intValue(2),
+                Value.nullValue(SqlType.TEXT)
+        ));
+
+        RecordId nullRid = users.insert(nullableTuple.serialize());
+        Tuple loadedNull = Tuple.deserialize(usersSchema, users.read(nullRid));
+
+        System.out.println("Loaded nullable id -> " + loadedNull.getValue("id").asInt());
+        System.out.println("Loaded nullable name is null -> " + loadedNull.getValue("name").isNull());
+
+        catalog.flush();
+        bufferPool.flushAll();
+        diskManager.close();
+
+        System.out.println("Tuple test PASSED");
     }
 
     private static void printRecord(Page page, int slot) {
