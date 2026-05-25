@@ -1,10 +1,14 @@
 import sql.buffer.BufferPool;
 import sql.buffer.Frame;
+import sql.binder.BoundStatement;
+import sql.binder.SqlBinder;
 import sql.catalog.Catalog;
 import sql.catalog.TableMetadata;
 import sql.page.Page;
 import sql.page.PageType;
 import sql.page.Slot;
+import sql.parser.SqlParser;
+import sql.parser.SqlStatement;
 import sql.record.RecordId;
 import sql.schema.Column;
 import sql.schema.Schema;
@@ -30,7 +34,9 @@ public class Main {
 //        testDeleteAndScan();
 //        testUpdate();
 //        testCatalog();
-        testTuple();
+//        testTuple();
+//        testParser();
+        testBinder();
     }
 
     private static void testPage() throws IOException {
@@ -438,6 +444,95 @@ public class Main {
         diskManager.close();
 
         System.out.println("Tuple test PASSED");
+    }
+
+    private static void testParser() {
+        System.out.println("\n=== SQL Parser Test ===");
+
+        SqlParser parser = new SqlParser();
+
+        SqlStatement create = parser.parse(
+                "CREATE TABLE users (id INT NOT NULL, name TEXT NULL);"
+        );
+        SqlStatement insert = parser.parse(
+                "INSERT INTO users (name, id) VALUES ('Minh', 1);"
+        );
+        SqlStatement select = parser.parse(
+                "SELECT id, name FROM users WHERE id = 1;"
+        );
+        SqlStatement selectAll = parser.parse(
+                "SELECT * FROM users;"
+        );
+
+        System.out.println(create);
+        System.out.println(insert);
+        System.out.println(select);
+        System.out.println(selectAll);
+
+        try {
+            parser.parse("CREATE TABLE TABLE (id INT);");
+            throw new IllegalStateException("Expected reserved keyword identifier error");
+        } catch (IllegalArgumentException expected) {
+            System.out.println("Reserved keyword check -> " + expected.getMessage());
+        }
+
+        System.out.println("SQL Parser test PASSED");
+    }
+
+    private static void testBinder() throws Exception {
+        System.out.println("\n=== Binder Test ===");
+
+        Path dbFile = Path.of("binder_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(3, diskManager);
+        Catalog catalog = new Catalog(bufferPool);
+        SqlParser parser = new SqlParser();
+        SqlBinder binder = new SqlBinder(catalog);
+
+        BoundStatement create = binder.bind(parser.parse(
+                "CREATE TABLE users (id INT NOT NULL, name TEXT NULL);"
+        ));
+        System.out.println(create);
+
+        catalog.createTable("users", new Schema(Arrays.asList(
+                new Column("id", SqlType.INT, false),
+                new Column("name", SqlType.TEXT, true)
+        )));
+
+        BoundStatement insert = binder.bind(parser.parse(
+                "INSERT INTO users (name, id) VALUES ('Minh', 1);"
+        ));
+        BoundStatement insertWithNull = binder.bind(parser.parse(
+                "INSERT INTO users VALUES (2, NULL);"
+        ));
+        BoundStatement select = binder.bind(parser.parse(
+                "SELECT id, name FROM users WHERE id = 1;"
+        ));
+
+        System.out.println(insert);
+        System.out.println(insertWithNull);
+        System.out.println(select);
+
+        try {
+            binder.bind(parser.parse("INSERT INTO users VALUES ('wrong', 'Minh');"));
+            throw new IllegalStateException("Expected insert type validation error");
+        } catch (IllegalArgumentException expected) {
+            System.out.println("Type check -> " + expected.getMessage());
+        }
+
+        try {
+            binder.bind(parser.parse("SELECT missing FROM users;"));
+            throw new IllegalStateException("Expected unknown column validation error");
+        } catch (IllegalArgumentException expected) {
+            System.out.println("Column check -> " + expected.getMessage());
+        }
+
+        bufferPool.flushAll();
+        diskManager.close();
+
+        System.out.println("Binder test PASSED");
     }
 
     private static void printRecord(Page page, int slot) {
