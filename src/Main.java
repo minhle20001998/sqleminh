@@ -9,6 +9,8 @@ import sql.page.PageType;
 import sql.page.Slot;
 import sql.parser.SqlParser;
 import sql.parser.SqlStatement;
+import sql.plan.LogicalPlan;
+import sql.plan.LogicalPlanner;
 import sql.record.RecordId;
 import sql.schema.Column;
 import sql.schema.Schema;
@@ -36,7 +38,8 @@ public class Main {
 //        testCatalog();
 //        testTuple();
 //        testParser();
-        testBinder();
+//        testBinder();
+        testLogicalPlan();
     }
 
     private static void testPage() throws IOException {
@@ -533,6 +536,50 @@ public class Main {
         diskManager.close();
 
         System.out.println("Binder test PASSED");
+    }
+
+    private static void testLogicalPlan() throws Exception {
+        System.out.println("\n=== Logical Plan Test ===");
+
+        Path dbFile = Path.of("logical_plan_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(3, diskManager);
+        Catalog catalog = new Catalog(bufferPool);
+        SqlParser parser = new SqlParser();
+        SqlBinder binder = new SqlBinder(catalog);
+        LogicalPlanner planner = new LogicalPlanner();
+
+        BoundStatement createBound = binder.bind(parser.parse(
+                "CREATE TABLE users (id INT NOT NULL, name TEXT NULL);"
+        ));
+        LogicalPlan createPlan = planner.plan(createBound);
+        System.out.println(createPlan);
+
+        catalog.createTable("users", new Schema(Arrays.asList(
+                new Column("id", SqlType.INT, false),
+                new Column("name", SqlType.TEXT, true)
+        )));
+
+        BoundStatement insertBound = binder.bind(parser.parse(
+                "INSERT INTO users (name, id) VALUES ('Minh', 1);"
+        ));
+        BoundStatement selectAllBound = binder.bind(parser.parse(
+                "SELECT * FROM users;"
+        ));
+        BoundStatement selectFilteredBound = binder.bind(parser.parse(
+                "SELECT name FROM users WHERE id = 1;"
+        ));
+
+        System.out.println(planner.plan(insertBound));
+        System.out.println(planner.plan(selectAllBound));
+        System.out.println(planner.plan(selectFilteredBound));
+
+        bufferPool.flushAll();
+        diskManager.close();
+
+        System.out.println("Logical Plan test PASSED");
     }
 
     private static void printRecord(Page page, int slot) {
