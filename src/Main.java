@@ -4,6 +4,8 @@ import sql.binder.BoundStatement;
 import sql.binder.SqlBinder;
 import sql.catalog.Catalog;
 import sql.catalog.TableMetadata;
+import sql.executor.Executor;
+import sql.executor.PlanExecutor;
 import sql.page.Page;
 import sql.page.PageType;
 import sql.page.Slot;
@@ -40,6 +42,7 @@ public class Main {
 //        testParser();
 //        testBinder();
         testLogicalPlan();
+        testExecutor();
     }
 
     private static void testPage() throws IOException {
@@ -580,6 +583,109 @@ public class Main {
         diskManager.close();
 
         System.out.println("Logical Plan test PASSED");
+    }
+
+    private static void testExecutor() throws Exception {
+        System.out.println("\n=== Executor Test ===");
+
+        Path dbFile = Path.of("executor_test.db");
+        Files.deleteIfExists(dbFile);
+
+        DiskManager diskManager = new DiskManager(dbFile.toString(), Page.PAGE_SIZE);
+        BufferPool bufferPool = new BufferPool(3, diskManager);
+        Catalog catalog = new Catalog(bufferPool);
+        SqlParser parser = new SqlParser();
+        SqlBinder binder = new SqlBinder(catalog);
+        LogicalPlanner planner = new LogicalPlanner();
+        PlanExecutor planExecutor = new PlanExecutor(catalog, bufferPool);
+
+        // 1. CREATE TABLE users
+        System.out.println("\n--- CREATE TABLE ---");
+        BoundStatement createBound = binder.bind(parser.parse(
+                "CREATE TABLE users (id INT NOT NULL, name TEXT NULL);"
+        ));
+        LogicalPlan createPlan = planner.plan(createBound);
+        System.out.println("Plan: " + createPlan);
+        Executor createExec = planExecutor.build(createPlan);
+        createExec.next();
+        createExec.close();
+        System.out.println("Table 'users' created.");
+
+        // Verify table exists in catalog
+        TableMetadata usersMeta = catalog.getTableMetadata("users");
+        System.out.println("Metadata: " + usersMeta);
+
+        // 2. INSERT rows
+        System.out.println("\n--- INSERT ---");
+        for (String[] row : new String[][]{
+                {"1", "Minh"},
+                {"2", "Alice"},
+                {"3", "Bob"},
+        }) {
+            String sql = String.format("INSERT INTO users VALUES (%s, '%s');", row[0], row[1]);
+            BoundStatement insertBound = binder.bind(parser.parse(sql));
+            LogicalPlan insertPlan = planner.plan(insertBound);
+            Executor insertExec = planExecutor.build(insertPlan);
+            insertExec.next();
+            insertExec.close();
+            System.out.println("Inserted: id=" + row[0] + ", name=" + row[1]);
+        }
+
+        // 3. SELECT * FROM users (full scan)
+        System.out.println("\n--- SELECT * FROM users ---");
+        BoundStatement selectAllBound = binder.bind(parser.parse(
+                "SELECT * FROM users;"
+        ));
+        LogicalPlan selectAllPlan = planner.plan(selectAllBound);
+        Executor selectAllExec = planExecutor.build(selectAllPlan);
+        int count = 0;
+        Tuple tuple;
+        while ((tuple = selectAllExec.next()) != null) {
+            System.out.println("  -> id=" + tuple.getValue("id").asInt()
+                    + ", name=" + tuple.getValue("name").asText());
+            count++;
+        }
+        selectAllExec.close();
+        assert count == 3 : "Expected 3 rows, got " + count;
+
+        // 4. SELECT name FROM users WHERE id = 2
+        System.out.println("\n--- SELECT name FROM users WHERE id = 2 ---");
+        BoundStatement selectFilteredBound = binder.bind(parser.parse(
+                "SELECT name FROM users WHERE id = 2;"
+        ));
+        LogicalPlan selectFilteredPlan = planner.plan(selectFilteredBound);
+        System.out.println("Plan: " + selectFilteredPlan);
+        Executor selectFilteredExec = planExecutor.build(selectFilteredPlan);
+        int filteredCount = 0;
+        while ((tuple = selectFilteredExec.next()) != null) {
+            System.out.println("  -> name=" + tuple.getValue("name").asText());
+            assert tuple.getValue("name").asText().equals("Alice") : "Expected 'Alice'";
+            filteredCount++;
+        }
+        selectFilteredExec.close();
+        assert filteredCount == 1 : "Expected 1 row, got " + filteredCount;
+
+        // 5. SELECT * FROM users WHERE id = 99 (no match)
+        System.out.println("\n--- SELECT * FROM users WHERE id = 99 (no match) ---");
+        BoundStatement selectNoMatchBound = binder.bind(parser.parse(
+                "SELECT * FROM users WHERE id = 99;"
+        ));
+        LogicalPlan selectNoMatchPlan = planner.plan(selectNoMatchBound);
+        Executor noMatchExec = planExecutor.build(selectNoMatchPlan);
+        int noMatchCount = 0;
+        while ((tuple = noMatchExec.next()) != null) {
+            noMatchCount++;
+        }
+        noMatchExec.close();
+        assert noMatchCount == 0 : "Expected 0 rows, got " + noMatchCount;
+        System.out.println("No rows returned (expected).");
+
+        catalog.flush();
+        bufferPool.flushAll();
+        diskManager.close();
+        Files.deleteIfExists(dbFile);
+
+        System.out.println("\nExecutor test PASSED");
     }
 
     private static void printRecord(Page page, int slot) {

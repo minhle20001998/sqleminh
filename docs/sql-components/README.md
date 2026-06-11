@@ -6,13 +6,13 @@ The project already has several storage-layer components. The missing pieces are
 
 ## Component Count
 
-Existing components in this repo: **8**
+Implemented components: **15**
 
-Planned components for basic SQL behavior: **10**
+Planned components: **5**
 
-Total components covered: **18**
+Total components covered: **20**
 
-## Existing Components
+## Implemented Components
 
 1. [Page](01-page.md)
 2. [Slot](02-slot.md)
@@ -23,22 +23,20 @@ Total components covered: **18**
 7. [Record ID](07-record-id.md)
 8. [Table Heap](08-table-heap.md)
 9. [Sequential Scan](09-sequential-scan.md)
-
-Note: `SequentialScan` is already implemented, so the implemented count is effectively 9 if scan is counted separately from table access.
-
-## Planned Components
-
 10. [Catalog and Metadata](10-catalog-metadata.md)
 11. [Schema](11-schema.md)
 12. [Tuple and Row Format](12-tuple-row-format.md)
 13. [SQL Parser](13-sql-parser.md)
 14. [Binder and Validator](14-binder-validator.md)
 15. [Logical Plan](15-logical-plan.md)
+
+## Planned Components
+
 16. [Executor](16-executor.md)
 17. [Predicate and Expression Engine](17-predicate-expression-engine.md)
 18. [Index](18-index.md)
 19. [Transaction and Recovery](19-transaction-recovery.md)
 20. [Automated Tests](20-automated-tests.md)
 
-For study order, start with `Catalog and Metadata`, then `Schema`, then `Tuple and Row Format`. Those unlock meaningful `CREATE TABLE`, `INSERT`, and `SELECT`.
+For study order, start with `Executor`, then `Predicate and Expression Engine`. Those unlock running actual SQL queries end-to-end.
 
